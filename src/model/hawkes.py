@@ -19,7 +19,7 @@ class MFHawkes(torch.nn.Module):
     def decay_function(self):
         pass
 
-    def forward(self, identities: torch.Tensor, times, mask):
+    def forward(self, identities: torch.Tensor, times, mask=None):
         """
 
         :param identities: shape(batch_size, event_length)
@@ -32,18 +32,24 @@ class MFHawkes(torch.nn.Module):
                                                    input_shape[-1])  # shape(batch_size, event_length, event_length)
 
         # bug warning: repeat_times should be transposed??
-        time_difference = repeated_times - times  # times' shape(batch_size, event_length), can this be broadcast?
+        event_times = times.unsqueeze(1).expand(*input_shape, input_shape[-1])
+        time_difference = repeated_times - event_times  # times' shape(batch_size, event_length), can this be broadcast?
 
         weighted_exp = self.beta * torch.exp(
             -self.beta * time_difference)  # shape(batch_size, event_length, event_length)
 
         embedding = self.identity_embedding(identities)  # shape(batch_size, event_length, feature_dim)
-        attention_alpha = embedding * embedding.T  # shape(batch_size, event_length, event_length)
+        attention_alpha = torch.matmul(embedding,
+                                       embedding.transpose(-1, -2))  # shape(batch_size, event_length, event_length)
 
-        before_sum = torch.tril(attention_alpha, diagonal=-1)
-        mask_sum = before_sum * mask  # shape(batch_size, event_length, event_length) *  shape(batch_size, event_length) broadcast ??
+        before_sum = torch.tril(attention_alpha * weighted_exp, diagonal=-1)
+        if mask is not None:
+            mask_sum = before_sum * mask  # shape(batch_size, event_length, event_length) *  shape(batch_size, event_length) broadcast ??
+        else:
+            mask_sum = before_sum
 
         u_k = self.u(identities).squeeze(-1)  # shape(batch_size, event_length)
-        lambda_of_event = mask_sum.sum(-1) * u_k  # shape(batch_size, event_length)
-        log_lambda = torch.log(lambda_of_event)
+        lambda_of_event = mask_sum.sum(-1) + u_k  # shape(batch_size, event_length)
+        lambda_of_event = torch.abs(lambda_of_event) + 0.000001
+        log_lambda = -torch.log(lambda_of_event)
         return log_lambda.sum(-1)
