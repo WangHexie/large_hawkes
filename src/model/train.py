@@ -22,18 +22,18 @@ class HawkesTrainer(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         y_hat = self(*batch)
-        loss = y_hat.sum()
+        loss = y_hat.mean()
         self.log('train_loss', loss, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         y_hat = self(*batch)
-        loss = y_hat.sum()
+        loss = y_hat.mean()
         self.log('valid_loss', loss, on_step=True)
 
     def test_step(self, batch, batch_idx):
         y_hat = self(*batch)
-        loss = y_hat.sum()
+        loss = y_hat.mean()
         self.log('test_loss', loss)
 
     def configure_optimizers(self):
