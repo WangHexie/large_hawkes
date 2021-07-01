@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
+import json
 
 
 class NewsDataset:
@@ -16,12 +17,24 @@ class NewsDataset:
         self.file_data = self.file_data[self.file_data['publish_author'] != '']
         self.file_data = self.file_data.sort_values(by='publish_time')
 
+    @staticmethod
+    def _save_id_map(id_map):
+        with open("../../cache/id_map.json", "w") as f:
+            json.dump(id_map, f)
+
+    @staticmethod
+    def load_id_map():
+        with open("../../cache/id_map.json", "r") as f:
+            id_map = json.load(f)
+        return id_map
+
     def get_data(self, max_length=10000, number_of_publication=5):
         count_data = self.file_data[-max_length:].groupby("publish_author").count()
         selected_data = self.file_data[-max_length:][
             self.file_data["publish_author"].isin(count_data.index[count_data["title"] > number_of_publication])]
         all_writer = list(set(selected_data["publish_author"].values))
         id_map = {all_writer[i]: i for i in range(len(all_writer))}
+        self._save_id_map(id_map)
         selected_data["publish_author"] = selected_data["publish_author"].map(id_map)
 
         return selected_data["publish_author"].values, selected_data["publish_time"].astype(

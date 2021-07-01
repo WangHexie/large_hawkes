@@ -19,6 +19,16 @@ class MFHawkes(torch.nn.Module):
     def decay_function(self):
         pass
 
+    def connection_function(self, identities):
+        """
+
+        :param identities: shape(batch_size, event_length) or shape(event_length, )
+        :return:
+        """
+        embedding = self.identity_embedding(identities)
+
+        return torch.matmul(embedding, embedding.transpose(-1, -2))
+
     def forward(self, identities: torch.Tensor, times, mask=None):
         """
 
@@ -40,9 +50,11 @@ class MFHawkes(torch.nn.Module):
         weighted_exp = torch.abs(self.beta) * torch.exp(
             -torch.abs(self.beta) * time_difference)  # shape(batch_size, event_length, event_length)
 
-        embedding = self.identity_embedding(identities)  # shape(batch_size, event_length, feature_dim)
-        attention_alpha = torch.matmul(embedding,
-                                       embedding.transpose(-1, -2))  # shape(batch_size, event_length, event_length)
+        # embedding = self.identity_embedding(identities)  # shape(batch_size, event_length, feature_dim)
+        # attention_alpha = torch.matmul(embedding,
+        #                                embedding.transpose(-1, -2))  # shape(batch_size, event_length, event_length)
+
+        attention_alpha = self.connection_function(identities)
         u_k = torch.abs(self.u(identities).squeeze(-1))  # shape(batch_size, event_length)
 
         # negative_integral

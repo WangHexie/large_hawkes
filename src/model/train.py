@@ -1,3 +1,4 @@
+import json
 from argparse import ArgumentParser
 
 import torch
@@ -7,6 +8,7 @@ from torch.utils.data import DataLoader, random_split
 
 from src.data.dataset import NewsDataset, train_test_split, NewsBatch
 from src.model.hawkes import MFHawkes
+from src.visualization.visual_graph import visualize_graph_using_MFhawkes
 
 
 class HawkesTrainer(pl.LightningModule):
@@ -90,8 +92,13 @@ def cli_main():
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer.from_argparse_args(args)
+    trainer = pl.Trainer(gpus=[1], max_epochs=200)
     trainer.fit(model, train_loader, val_loader)
+
+    with open("../../cache/id.json", "r") as f:
+        ids = json.load(f)
+    author_name = list(ids)
+    visualize_graph_using_MFhawkes(model.backbone, author_name, "../../cache/graph.jpg")
 
     # # ------------
     # # testing
