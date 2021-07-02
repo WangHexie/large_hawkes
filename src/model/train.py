@@ -71,11 +71,12 @@ def cli_main():
 
     original_dataset = NewsDataset()
 
-    data_and_info = original_dataset.get_data()
-    train_authors, train_times, test_authors, test_times = train_test_split(*data_and_info[:2])
+    data_and_info = original_dataset.get_data(max_length=1000)
+    # train_authors, train_times, test_authors, test_times = train_test_split(*data_and_info[:2])
+    train_authors, train_times, test_authors, test_times = *data_and_info[:2], *data_and_info[:2]
 
-    train_data = NewsBatch(train_authors, train_times)
-    test_data = NewsBatch(test_authors, test_times)
+    train_data = NewsBatch(train_authors, train_times, event_length=20)
+    test_data = NewsBatch(test_authors, test_times, event_length=20)
 
     train_loader = DataLoader(train_data, batch_size=args.batch_size, shuffle=True)
     val_loader = DataLoader(test_data, batch_size=args.batch_size, shuffle=True)
@@ -92,7 +93,7 @@ def cli_main():
     # ------------
     # training
     # ------------
-    trainer = pl.Trainer(gpus=[1], max_epochs=200)
+    trainer = pl.Trainer(gpus=[1], max_epochs=5000)
     trainer.fit(model, train_loader, val_loader)
 
     with open("../../cache/id.json", "r") as f:

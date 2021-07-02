@@ -27,7 +27,7 @@ class MFHawkes(torch.nn.Module):
         """
         embedding = self.identity_embedding(identities)
 
-        return torch.matmul(embedding, embedding.transpose(-1, -2))
+        return torch.abs(torch.matmul(embedding, embedding.transpose(-1, -2)))
 
     def forward(self, identities: torch.Tensor, times, mask=None):
         """
